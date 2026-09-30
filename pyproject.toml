@@ -1,0 +1,13 @@
+[project]
+name = "docgen-service"
+version = "0.1.0"
+description = "Templated document generation API — structured JSON + a template in, a PDF out."
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "alembic>=1.20.0",
+    "fastapi[standard]>=0.142.1",
+    "psycopg[binary]>=3.3.6",
+    "scalar-fastapi>=1.9.1",
+    "sqlalchemy>=2.1.1",
+]

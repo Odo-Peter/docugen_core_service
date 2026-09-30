@@ -1,0 +1,42 @@
+# Reference deployment (ADR 0001): api + postgres, used for local dev and
+# self-hosting. The live demo deployment (Render + Neon) is separate and
+# documented in README.md / DEPLOY.md, not here.
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: docgen
+      POSTGRES_PASSWORD: docgen
+      POSTGRES_DB: docgen
+    ports:
+      - "${POSTGRES_HOST_PORT:-5432}:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U docgen"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://docgen:docgen@db:5432/docgen
+    ports:
+      - "${API_HOST_PORT:-8000}:8000"
+    volumes:
+      - ./app:/srv/app
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+
+volumes:
+  db_data:
