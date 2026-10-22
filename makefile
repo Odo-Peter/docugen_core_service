@@ -22,6 +22,10 @@ restart: stop start ## Stop then start all services
 clean: ## Stop all services and delete the Postgres data volume too
 	docker compose down -v
 
+lint: ## Lints the project for styling and formating
+	uv sync --extra dev
+	./scripts/lint.sh
+
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
 		awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-10s\033[0m %s\n", $$1, $$2}'

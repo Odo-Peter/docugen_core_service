@@ -5,7 +5,7 @@ from sqlalchemy import engine_from_config, pool
 
 from app.config import get_settings
 from app.db import Base
-import app.models  # noqa: F401 — registers all models on Base.metadata
+from app.models.tenants import Tenant as Tenant
 
 config = context.config
 

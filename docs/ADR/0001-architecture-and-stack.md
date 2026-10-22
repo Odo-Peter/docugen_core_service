@@ -12,14 +12,14 @@ Guiding rules: boring and recognizable tools over trendy ones, a working vertica
 
 ## Milestone scope
 
-| Milestone | Status | Content |
-|---|---|---|
-| 2. Vertical slice | In scope | One seeded template, synchronous PDF generation over the API, API key auth |
-| 3. Template management | In scope | Template CRUD, immutable versions, validation |
-| 4. Async jobs and batching | Deferred | Celery queue, job status polling, batch submission |
-| 5. Webhooks | Deferred | Completion callbacks (depends on jobs) |
-| 6. Admin UI | Deferred | Vite app for templates and job history |
-| 7. Docs and case study | Deferred | README, architecture write-up |
+| Milestone                  | Status   | Content                                                                    |
+| -------------------------- | -------- | -------------------------------------------------------------------------- |
+| 2. Vertical slice          | In scope | One seeded template, synchronous PDF generation over the API, API key auth |
+| 3. Template management     | In scope | Template CRUD, immutable versions, validation                              |
+| 4. Async jobs and batching | Deferred | Celery queue, job status polling, batch submission                         |
+| 5. Webhooks                | Deferred | Completion callbacks (depends on jobs)                                     |
+| 6. Admin UI                | Deferred | Vite app for templates and job history                                     |
+| 7. Docs and case study     | Deferred | README, architecture write-up                                              |
 
 ## Decisions in effect now
 
@@ -30,6 +30,7 @@ Guiding rules: boring and recognizable tools over trendy ones, a working vertica
 **Decision:** FastAPI.
 
 **Why:**
+
 - The JSON payload is the product's contract. Pydantic models make it explicit, and the OpenAPI docs page doubles as a live demo surface.
 - The PDF ecosystem (WeasyPrint, ReportLab) is Python-native, so the API stays in the language of its hardest dependency.
 - Flask would mean hand-assembling validation, docs, and auth. Django brings an ORM, admin, and auth this service does not need.
@@ -45,10 +46,12 @@ Guiding rules: boring and recognizable tools over trendy ones, a working vertica
 **Decision:** WeasyPrint as the primary engine, behind a small `Renderer` interface keyed by output format.
 
 **Why:**
+
 - Templates are managed through the API, so they are stored data. With ReportLab a template is code, and storing executable code from API clients is a security problem. HTML/CSS plus Jinja2 is a document plus variables.
 - HTML/CSS templates are editable by non-developers and previewable later in the admin UI.
 
 **Controls built in from the start:**
+
 - Jinja2 `SandboxedEnvironment` with strict undefined variables. Templates are untrusted input.
 - Custom WeasyPrint `url_fetcher` that allows only `data:` URIs, blocking `file://` and all network access (SSRF). Bundled fonts are loaded from the image, not fetched.
 - Each template declares its variables as JSON Schema; data is validated before rendering and returns 422 with clear errors.
@@ -60,19 +63,24 @@ Guiding rules: boring and recognizable tools over trendy ones, a working vertica
 
 Tables are added by Alembic migrations as each milestone needs them.
 
-| Table | Key fields | Milestone |
-|---|---|---|
-| tenants | id, name, created_at | 2 |
-| api_keys | id, tenant_id, name, key_prefix, key_hash, scopes, last_used_at, revoked_at | 2 |
-| templates | id, tenant_id, slug, name, created_at, deleted_at | 2 |
-| template_versions | id, template_id, version, html, css, variables_schema (JSONB), created_at | 2 |
+| Table             | Key fields                                                                  | Milestone |
+| ----------------- | --------------------------------------------------------------------------- | --------- |
+| tenants           | id, name, description, is_active                                            | 2         |
+| api_keys          | id, tenant_id, name, key_prefix, key_hash, scopes, last_used_at, revoked_at | 2         |
+| templates         | id, tenant_id, slug, name, deleted_at                                       | 2         |
+| template_versions | id, template_id, version, html, css, variables_schema (JSONB)               | 2         |
+
+Every table also carries `created_at` and `updated_at` (UTC, timestamptz), inherited from the declarative `Base`.
 
 **Rules:**
+
 - Template versions are immutable: editing creates a new version, so any past render can be reproduced.
 - API keys are stored as a SHA-256 hash with a short prefix and shown once on creation. Scopes (`documents:create`, `templates:read`, `templates:write`) let a demo key render but not author templates.
 - Every tenant-owned query is filtered by `tenant_id` through one data-access layer, with a test that tenant A cannot read tenant B's data.
-- Templates are soft-deleted; public ids are UUIDs; request body size is capped.
+- Templates are soft-deleted; public ids are prefixed ULIDs (e.g. `tnt_` for tenants), generated in the application; request body size is capped.
 - No document payloads or outputs are stored in this phase: the sync endpoint returns the PDF bytes directly.
+- Tenant names are unique case-insensitively among active tenants (partial unique index on `lower(name)` where `is_active`). Deactivating a tenant frees its name.
+- IDs are strings, not UUIDs, so every foreign key (`tenant_id`, `template_id`) is `String(50)` rather than a UUID column.
 
 **Deliberately out of scope:** user accounts and logins, roles, billing, usage metering. The first tenant and key are created with a CLI command that prints the key once.
 
@@ -83,6 +91,7 @@ Tables are added by Alembic migrations as each milestone needs them.
 **Options considered:** single VPS with docker compose and Caddy, free PaaS tiers, Oracle Cloud free tier, Kubernetes.
 
 **Decision:** Two named deployments.
+
 - **Reference deployment:** `docker compose` (api, postgres, reverse proxy). Documented for self-hosting and used for development.
 - **Live demo deployment:** free tiers. API on a Render free web service, Postgres on Neon (not Render's free Postgres, which expires after 30 days).
 

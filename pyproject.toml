@@ -8,6 +8,41 @@ dependencies = [
     "alembic>=1.20.0",
     "fastapi[standard]>=0.142.1",
     "psycopg[binary]>=3.3.6",
+    "python-ulid>=4.0.1",
     "scalar-fastapi>=1.9.1",
     "sqlalchemy>=2.1.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "mypy",
+    "pytest",
+    "pytest-asyncio",
+    "ruff",
+    "pre-commit",
+]
+
+[tool.ruff]
+# Match your desired line length
+line-length = 140
+
+[tool.ruff.lint]
+select = ["E", "F"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.mypy]
+# Ignore errors from third-party libraries that don't have type hints
+ignore_missing_imports = true
+
+# Enforce that all functions you write must have type hints
+disallow_untyped_defs = true
+
+# Be explicit about functions that can return any type
+warn_return_any = true
+
+[dependency-groups]
+dev = [
+    "ruff>=0.12.2",
 ]
