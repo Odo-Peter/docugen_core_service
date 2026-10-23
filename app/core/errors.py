@@ -11,7 +11,7 @@ class ErrorCode(StrEnum):
     UNAUTHORIZED = "unauthorized"
     FORBIDDEN = "forbidden"
     NOT_FOUND = "not_found"
-    VALIDATION_ERROR = "validation_failed"
+    VALIDATION_FAILED = "validation_failed"
     TEMPLATE_ERROR = "template_error"
     PAGE_LIMIT_EXCEEDED = "page_limit_exceeded"
     CONFLICT = "conflict"

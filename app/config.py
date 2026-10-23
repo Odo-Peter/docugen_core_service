@@ -27,7 +27,6 @@ class Settings(BaseSettings):
     # startup guard in main.py that currently refuses to boot in production
     # with page_limit == 0.
     page_limit: int = 5
-
     rate_limit_per_minute: int = 60
 
 

@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 from app.api.v1.endpoints.deps import AuthContext, require_scope
 from app.api.v1.schemas.documents import GenerateDocumentRequest
 from app.core.scopes import ApiKeyScope
+from app.services.document_service import DocumentService
 
 from app.db import get_db_session
 
@@ -24,11 +25,18 @@ router = APIRouter(tags=["documents"])
 def generate_document(
     body: GenerateDocumentRequest,
     auth: AuthContext = Depends(require_scope(ApiKeyScope.DOCUMENTS_CREATE)),
-    session: Session = Depends(get_db_session),
+    db_session: Session = Depends(get_db_session),
 ) -> Response:
-    raise NotImplementedError("implement in step 6 — see module docstring")
+    document_service = DocumentService(session=db_session)
 
+    result = document_service.generate_document(tenant_id=auth.tenant_id, request_data=body)
 
-@router.get("/documents/{document_id}")
-def get_document(document_id: str) -> dict:
-    return {"response": f"Recieved {document_id}"}
+    return Response(
+        content=result.content,
+        media_type=result.content_type,
+        headers={
+            "Content-Disposition": f'inline; filename="{result.filename}"',
+            "X-Template-Version": str(result.template_version),
+            "X-Page-Count": str(result.page_count),
+        },
+    )

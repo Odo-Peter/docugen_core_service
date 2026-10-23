@@ -84,7 +84,7 @@ class WeasyPrintRenderer(Renderer):
 
     def __init__(self, page_limit: int = PAGE_LIMIT) -> None:
         if page_limit < 1:
-            raise ValueError("page_limit must be at least 1")
+            raise ValueError(f"PAGE_LIMIT must be at least 1; got {page_limit}")
 
         self.page_limit = page_limit
 
