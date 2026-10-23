@@ -1,6 +1,6 @@
 """Dev seed: tenant + API key + an 'invoice' template. Prints the key once.
 
-    uv run python -m scripts.seed_dev
+uv run python -m scripts.seed_dev
 """
 
 import hashlib
@@ -58,9 +58,7 @@ SCHEMA = {
 
 def main() -> None:
     with SessionLocal() as db:
-        tenant = db.scalars(
-            select(Tenant).where(Tenant.name == TENANT_NAME, Tenant.is_active.is_(True))
-        ).first()
+        tenant = db.scalars(select(Tenant).where(Tenant.name == TENANT_NAME, Tenant.is_active.is_(True))).first()
         if tenant is None:
             tenant = Tenant(name=TENANT_NAME)
             db.add(tenant)
@@ -91,11 +89,7 @@ def main() -> None:
             template = Template(tenant_id=tenant.id, slug="invoice", name="Invoice")
             db.add(template)
             db.flush()
-            db.add(
-                TemplateVersion(
-                    template_id=template.id, version=1, html=HTML, css=CSS, variables_schema=SCHEMA
-                )
-            )
+            db.add(TemplateVersion(template_id=template.id, version=1, html=HTML, css=CSS, variables_schema=SCHEMA))
 
         db.commit()
         print(f"tenant_id: {tenant.id}")
