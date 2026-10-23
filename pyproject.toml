@@ -42,6 +42,10 @@ disallow_untyped_defs = true
 # Be explicit about functions that can return any type
 warn_return_any = true
 
+# Treat the project root as the place where packages live
+explicit_package_bases = true
+mypy_path = "."
+
 [dependency-groups]
 dev = [
     "ruff>=0.12.2",
