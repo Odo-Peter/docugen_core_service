@@ -9,7 +9,7 @@ Companion to ADR 0001. This fixes the public shape of the API before any app cod
 - **Base path:** `/v1`. JSON everywhere except the PDF response of the generation endpoint.
 - **Auth:** `Authorization: Bearer <api_key>`. Keys look like `dg_<prefix>_<secret>`; the prefix is used for lookup, the full key is hashed. The tenant is derived from the key, so tenant ids never appear in URLs.
 - **Scopes:** each key carries scopes: `documents:create`, `templates:read`, `templates:write`. A missing scope returns 403. The public demo key gets everything except `templates:write`.
-- **IDs:** UUID strings. **Timestamps:** ISO 8601 UTC. **Template slugs:** lowercase `a-z0-9-`, 3 to 64 characters, unique per tenant.
+- **IDs:** prefixed ULID strings, e.g. `tnt_01JABCDEFGHJKMNPQRSTVWXYZ0`. The prefix identifies the resource type and the ULID part is time-sortable. **Timestamps:** ISO 8601 UTC. **Template slugs:** lowercase `a-z0-9-`, 3 to 64 characters, unique per tenant.
 - **Pagination:** cursor based. `?limit=50&cursor=...` returns `{"data": [...], "next_cursor": "..." | null}`. Max limit 100.
 - **Formats:** the `format` field defaults to `"pdf"`. It exists from day one so DOCX is additive later.
 - **Limits (configurable):** request body 5 MB (413), render timeout 30 s, page cap set from the benchmark.
@@ -25,25 +25,23 @@ All errors use `application/problem+json` (RFC 9457) with a stable `code`:
   "status": 422,
   "code": "validation_failed",
   "detail": "data does not match the template's variables_schema",
-  "errors": [
-    {"path": "data.customer.name", "message": "is required"}
-  ]
+  "errors": [{ "path": "data.customer.name", "message": "is required" }]
 }
 ```
 
-| Status | `code` | When |
-|---|---|---|
-| 401 | `unauthorized` | Missing, malformed, or revoked key |
-| 403 | `forbidden` | Key lacks the required scope |
-| 404 | `not_found` | Unknown template or version (also for other tenants' resources) |
-| 409 | `conflict` | Slug already exists |
-| 413 | `payload_too_large` | Body over the size limit |
-| 422 | `validation_failed` | Bad request body, or `data` fails the template's JSON Schema |
-| 422 | `template_error` | Template fails to compile or render (strict undefined variables, sandbox violation) |
-| 422 | `page_limit_exceeded` | Document would exceed the page cap |
-| 429 | `rate_limited` | Per-key limit hit; `Retry-After` header set |
-| 504 | `render_timeout` | Render exceeded the time limit |
-| 500 | `internal_error` | Unexpected failure; response carries a request id |
+| Status | `code`                | When                                                                                |
+| ------ | --------------------- | ----------------------------------------------------------------------------------- |
+| 401    | `unauthorized`        | Missing, malformed, or revoked key                                                  |
+| 403    | `forbidden`           | Key lacks the required scope                                                        |
+| 404    | `not_found`           | Unknown template or version (also for other tenants' resources)                     |
+| 409    | `conflict`            | Slug already exists                                                                 |
+| 413    | `payload_too_large`   | Body over the size limit                                                            |
+| 422    | `validation_failed`   | Bad request body, or `data` fails the template's JSON Schema                        |
+| 422    | `template_error`      | Template fails to compile or render (strict undefined variables, sandbox violation) |
+| 422    | `page_limit_exceeded` | Document would exceed the page cap                                                  |
+| 429    | `rate_limited`        | Per-key limit hit; `Retry-After` header set                                         |
+| 504    | `render_timeout`      | Render exceeded the time limit                                                      |
+| 500    | `internal_error`      | Unexpected failure; response carries a request id                                   |
 
 Every response includes `X-Request-Id`.
 
@@ -61,16 +59,20 @@ Request:
 
 ```json
 {
-  "template": {"slug": "invoice", "version": 3},
-  "data": {"customer": {"name": "Acme"}, "lines": [{"desc": "Consulting", "qty": 10, "price": 120}]},
+  "template": { "slug": "invoice", "version": 3 },
+  "data": {
+    "customer": { "name": "Acme" },
+    "lines": [{ "desc": "Consulting", "qty": 10, "price": 120 }]
+  },
   "format": "pdf",
-  "options": {"filename": "invoice-0042.pdf"}
+  "options": { "filename": "invoice-0042.pdf" }
 }
 ```
 
 `template.version` is optional and defaults to the latest version.
 
 Response `200`:
+
 - `Content-Type: application/pdf`
 - `Content-Disposition: inline; filename="invoice-0042.pdf"`
 - `X-Template-Version: 3`
@@ -82,16 +84,16 @@ In M2 the only template is seeded by the CLI; the endpoints below arrive in M3.
 
 ## Templates (M3)
 
-| Method and path | Purpose | Scope |
-|---|---|---|
-| `POST /v1/templates` | Create template with version 1 | `templates:write` |
-| `GET /v1/templates` | List (summaries, no html/css) | `templates:read` |
-| `GET /v1/templates/{slug}` | Template summary and current version number | `templates:read` |
-| `PATCH /v1/templates/{slug}` | Rename (name only) | `templates:write` |
-| `DELETE /v1/templates/{slug}` | Soft delete | `templates:write` |
-| `POST /v1/templates/{slug}/versions` | Publish a new immutable version | `templates:write` |
-| `GET /v1/templates/{slug}/versions` | List versions | `templates:read` |
-| `GET /v1/templates/{slug}/versions/{n}` | Full version: html, css, schema | `templates:read` |
+| Method and path                         | Purpose                                     | Scope             |
+| --------------------------------------- | ------------------------------------------- | ----------------- |
+| `POST /v1/templates`                    | Create template with version 1              | `templates:write` |
+| `GET /v1/templates`                     | List (summaries, no html/css)               | `templates:read`  |
+| `GET /v1/templates/{slug}`              | Template summary and current version number | `templates:read`  |
+| `PATCH /v1/templates/{slug}`            | Rename (name only)                          | `templates:write` |
+| `DELETE /v1/templates/{slug}`           | Soft delete                                 | `templates:write` |
+| `POST /v1/templates/{slug}/versions`    | Publish a new immutable version             | `templates:write` |
+| `GET /v1/templates/{slug}/versions`     | List versions                               | `templates:read`  |
+| `GET /v1/templates/{slug}/versions/{n}` | Full version: html, css, schema             | `templates:read`  |
 
 Create body (`POST /v1/templates`); the new-version body has the same fields minus `slug` and `name`:
 
@@ -101,7 +103,11 @@ Create body (`POST /v1/templates`); the new-version body has the same fields min
   "name": "Invoice",
   "html": "<html>...{{ customer.name }}...</html>",
   "css": "@page { size: A4; margin: 20mm } ...",
-  "variables_schema": {"type": "object", "required": ["customer"], "properties": {}}
+  "variables_schema": {
+    "type": "object",
+    "required": ["customer"],
+    "properties": {}
+  }
 }
 ```
 

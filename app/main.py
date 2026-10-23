@@ -8,8 +8,9 @@ app = FastAPI(
     version="0.1.0",
     openapi_url="/v1/openapi.json",
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
 )
+
 
 @app.get("/v1/")
 async def root(request: Request) -> dict[str, str]:
@@ -19,6 +20,7 @@ async def root(request: Request) -> dict[str, str]:
 @app.get("/v1/ready")
 async def ready() -> dict[str, str]:
     return {"status": "ready"}
+
 
 @app.get("/v1/scalar", include_in_schema=False)
 async def scalar_html(request: Request) -> HTMLResponse:

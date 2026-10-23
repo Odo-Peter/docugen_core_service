@@ -6,8 +6,10 @@ pull in async SQLAlchemy for M2/M3. Revisit only if a real need appears.
 
 from collections.abc import Generator
 
-from sqlalchemy import create_engine
-from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
+from sqlalchemy import create_engine, DateTime, func
+from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker, Mapped, mapped_column
+
+from datetime import datetime, timezone
 
 from app.config import get_settings
 
@@ -20,6 +22,20 @@ SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 class Base(DeclarativeBase):
     """Base class for ORM models — import models via app/models/__init__.py
     so Alembic's autogenerate can see them all."""
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        server_default=func.timezone("UTC", func.now()),
+    )
+
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+        server_default=func.timezone("UTC", func.now()),
+        server_onupdate=func.timezone("UTC", func.now()),
+    )
 
 
 def get_db() -> Generator[Session, None, None]:
