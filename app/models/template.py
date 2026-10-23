@@ -1,6 +1,8 @@
 """Template model (ADR 0001, api-contract.md).
 
-A template is the stable identity (slug + name). Its content lives in immutable TemplateVersion rows. Soft-deleted via Base.is_active / Base.deactivated_at; read it through tenant_active() in app/core/queries.py.
+A template is the stable identity (slug + name).
+Its content lives in immutable TemplateVersion rows. Soft-deleted via Base.is_active / Base.deactivated_at;
+read it through tenant_active() in app/core/queries.py.
 """
 
 from sqlalchemy import CheckConstraint, ForeignKey, Index, String, text
@@ -24,8 +26,6 @@ class Template(Base):
     )
 
     id: Mapped[str] = prefixed_id_column("tpl_")
-    tenant_id: Mapped[str] = mapped_column(
-        String(50), ForeignKey("tenants.id"), nullable=False
-    )
+    tenant_id: Mapped[str] = mapped_column(String(50), ForeignKey("tenants.id"), nullable=False)
     slug: Mapped[str] = mapped_column(String(64), nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
