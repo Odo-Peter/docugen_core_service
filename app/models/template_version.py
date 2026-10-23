@@ -39,9 +39,7 @@ class TemplateVersion(Base):
     )
 
     id: Mapped[str] = prefixed_id_column("ver_")
-    template_id: Mapped[str] = mapped_column(
-        String(50), ForeignKey("templates.id"), nullable=False
-    )
+    template_id: Mapped[str] = mapped_column(String(50), ForeignKey("templates.id"), nullable=False)
     version: Mapped[int] = mapped_column(Integer, nullable=False)
     html: Mapped[str] = mapped_column(Text, nullable=False)
     css: Mapped[str] = mapped_column(Text, nullable=False, default="")
