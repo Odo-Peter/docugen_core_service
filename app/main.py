@@ -17,9 +17,9 @@ async def root(request: Request) -> dict[str, str]:
     return {"message": "Hello World"}
 
 
-@app.get("/v1/ready")
-async def ready() -> dict[str, str]:
-    return {"status": "ready"}
+@app.get("/v1/health")
+async def health() -> dict[str, str]:
+    return {"status": "ok"}
 
 
 @app.get("/v1/scalar", include_in_schema=False)
