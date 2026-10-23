@@ -5,7 +5,7 @@ from sqlalchemy import engine_from_config, pool
 
 from app.config import get_settings
 from app.db import Base
-from app.models.tenants import Tenant as Tenant
+from app.models.tenant import Tenant as Tenant
 from app.models.api_key import ApiKey as ApiKey
 
 config = context.config

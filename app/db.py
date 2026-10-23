@@ -6,11 +6,10 @@ pull in async SQLAlchemy for M2/M3. Revisit only if a real need appears.
 
 from collections.abc import Generator
 
-from sqlalchemy import create_engine, DateTime, func
+from sqlalchemy import create_engine, DateTime, func, Boolean, text
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker, Mapped, mapped_column
 
 from datetime import datetime, timezone
-
 from app.config import get_settings
 
 settings = get_settings()
@@ -36,6 +35,18 @@ class Base(DeclarativeBase):
         server_default=func.timezone("UTC", func.now()),
         server_onupdate=func.timezone("UTC", func.now()),
     )
+
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default=text("true"))
+
+    deactivated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    def deactivate(self) -> None:
+        self.is_active = False
+        self.deactivated_at = datetime.now(timezone.utc)
+
+    def reactivate(self) -> None:
+        self.is_active = True
+        self.deactivated_at = None
 
 
 def get_db() -> Generator[Session, None, None]:
