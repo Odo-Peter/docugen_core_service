@@ -3,6 +3,7 @@ from app.core.errors import ApiError, ErrorCode
 
 router = APIRouter(tags=["demo"])
 
+
 @router.get("/demo-error")
 async def demo_error() -> None:
     raise ApiError(

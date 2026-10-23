@@ -22,11 +22,13 @@ settings = get_settings()
 PAGE_LIMIT = settings.page_limit
 PDF_CONTENT_TYPE = "application/pdf"
 
+
 @dataclass
 class RenderResult:
     content: bytes
     content_type: str
     page_count: int
+
 
 class Renderer(ABC):
     """One renderer per output format."""
@@ -36,8 +38,10 @@ class Renderer(ABC):
         """Render a compiled template and data into document bytes."""
         raise NotImplementedError
 
+
 class TemplateCompileError(Exception):
     """Raised when a template fails to compile or render."""
+
 
 class PageLimitExceeded(Exception):
     """Raised when a rendered document would exceed the configured page cap."""
@@ -47,7 +51,8 @@ class PageLimitExceeded(Exception):
         self.limit = limit
         super().__init__(f"document has {page_count} pages, limit is {limit}")
 
-def restricted_url_fetcher(url: str, *args, **kwargs) -> dict:
+
+def restricted_url_fetcher(url: str) -> dict:
     """Fetch embedded data URIs only; reject all other resource URLs."""
     parsed = urlsplit(url)
 
@@ -61,15 +66,9 @@ def restricted_url_fetcher(url: str, *args, **kwargs) -> dict:
 
         media_type = metadata[5:].split(";")
         mime_type = media_type[0] or "text/plain"
-        is_base64 = any(
-            part.lower() == "base64" for part in media_type[1:]
-        )
+        is_base64 = any(part.lower() == "base64" for part in media_type[1:])
 
-        content = (
-            b64decode(payload, validate=True)
-            if is_base64
-            else unquote_to_bytes(payload)
-        )
+        content = b64decode(payload, validate=True) if is_base64 else unquote_to_bytes(payload)
 
         return {
             "string": content,
@@ -83,7 +82,7 @@ def restricted_url_fetcher(url: str, *args, **kwargs) -> dict:
 class WeasyPrintRenderer(Renderer):
     """Render untrusted HTML/CSS templates into PDF documents."""
 
-    def __init__(self, page_limit: int = PAGE_LIMIT ) -> None:
+    def __init__(self, page_limit: int = PAGE_LIMIT) -> None:
         if page_limit < 1:
             raise ValueError("page_limit must be at least 1")
 
@@ -105,10 +104,9 @@ class WeasyPrintRenderer(Renderer):
     def _context(data: dict) -> dict:
         # Support both {{ customer_name }} and {{ data.customer_name }}.
         context = dict(data)
-        context["data"] =  data
+        context["data"] = data
 
         return context
-
 
     def render(self, *, html: str, css: str, data: dict) -> RenderResult:
         try:
@@ -117,12 +115,11 @@ class WeasyPrintRenderer(Renderer):
             rendered_html = self.html_env.from_string(html).render(context)
             rendered_css = self.css_env.from_string(css).render(context)
 
-
             # No base_url: relative resources have no trusted base.
             # Apply the restricted fetcher to HTML and CSS independently.
             stylesheet = CSS(
                 string=rendered_css,
-                url_fetcher=restricted_url_fetcher, 
+                url_fetcher=restricted_url_fetcher,
             )
 
             document = HTML(
@@ -139,16 +136,14 @@ class WeasyPrintRenderer(Renderer):
             content = document.write_pdf()
 
             if content is None:
-                raise TemplateCompileError(
-                    "PDF generation returned no document content"
-                )
+                raise TemplateCompileError("PDF generation returned no document content")
 
             return RenderResult(
                 content=content,
                 content_type=PDF_CONTENT_TYPE,
                 page_count=page_count,
             )
-        
+
         except PageLimitExceeded:
             raise
         except (TemplateError, URLFetchingError) as exc:
@@ -156,23 +151,19 @@ class WeasyPrintRenderer(Renderer):
         except Exception as exc:
             # Normalize unexpected rendering failures at the renderer
             # boundary, without leaking internal exception types.
-            raise TemplateCompileError(
-                "The template could not be rendered into a PDF"
-            ) from exc
+            raise TemplateCompileError("The template could not be rendered into a PDF") from exc
 
 
-_RENDERERS: dict[str, Renderer] = {
-    "pdf": WeasyPrintRenderer()
-}
+_RENDERERS: dict[str, Renderer] = {"pdf": WeasyPrintRenderer()}
+
 
 def get_renderer(format: str) -> Renderer:
     """Return the renderer registered for the requested output format."""
     try:
         return _RENDERERS[format.lower()]
     except (KeyError, AttributeError):
-        raise ValueError(
-            f"Unsupported document format: {format!r}"
-        ) from None
+        raise ValueError(f"Unsupported document format: {format!r}") from None
+
 
 def generate_document(
     *,

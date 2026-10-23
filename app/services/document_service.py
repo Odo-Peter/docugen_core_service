@@ -1,10 +1,8 @@
 from jsonschema import Draft202012Validator
-from fastapi import APIRouter, Depends, Response, status
+from fastapi import status
 from sqlalchemy.orm import Session
 
-from app.api.v1.endpoints.deps import AuthContext, require_scope
 from app.api.v1.schemas.documents import GenerateDocumentRequest, GeneratedDocument
-from app.core.scopes import ApiKeyScope
 from app.core.errors import ApiError, ErrorCode
 from app.core.renderer.renderer import (
     PageLimitExceeded,
@@ -12,22 +10,17 @@ from app.core.renderer.renderer import (
     generate_document as render_document,
 )
 
-from app.db import get_db_session
 from app.core.queries import get_version
 
-def generate_document(
-    session: Session,
-    *,
-    tenant_id: str,
-    request_data: GenerateDocumentRequest
-) -> GeneratedDocument:
+
+def generate_document(session: Session, *, tenant_id: str, request_data: GenerateDocumentRequest) -> GeneratedDocument:
     # Active version of an active template owned by this tenant.
     # Other tenants' and deactivated templates look the same as missing ones.
 
     version = get_version(session, tenant_id, request_data.template.slug, request_data.template.version)
 
     if version is None:
-            raise ApiError(
+        raise ApiError(
             status=status.HTTP_404_NOT_FOUND,
             code=ErrorCode.NOT_FOUND,
             title="Template or version not found",
@@ -36,8 +29,7 @@ def generate_document(
     # Validate data against the template's JSON Schema
     validator = Draft202012Validator(version.variables_schema)
     errors = [
-        {"path": ".".join(["data", *map(str, e.absolute_path)]), "message": e.message}
-        for e in validator.iter_errors(request_data.data)
+        {"path": ".".join(["data", *map(str, e.absolute_path)]), "message": e.message} for e in validator.iter_errors(request_data.data)
     ]
 
     if errors:
@@ -59,10 +51,7 @@ def generate_document(
         )
     except TemplateCompileError as exc:
         raise ApiError(
-            status=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            code=ErrorCode.TEMPLATE_ERROR,
-            title="Template failed to render",
-            detail=str(exc)
+            status=status.HTTP_422_UNPROCESSABLE_CONTENT, code=ErrorCode.TEMPLATE_ERROR, title="Template failed to render", detail=str(exc)
         ) from exc
 
     except PageLimitExceeded as exc:
@@ -70,17 +59,15 @@ def generate_document(
             status=status.HTTP_422_UNPROCESSABLE_CONTENT,
             code=ErrorCode.PAGE_LIMIT_EXCEEDED,
             title="Document exceeds the page limit",
-            detail=str(exc)
+            detail=str(exc),
         ) from exc
 
-    filename = (
-        (request_data.options.filename if request_data.options else None) or f"{request_data.template.slug}.pdf"
-    )
+    filename = (request_data.options.filename if request_data.options else None) or f"{request_data.template.slug}.pdf"
 
     return GeneratedDocument(
         content=result.content,
         content_type=result.content_type,
         page_count=result.page_count,
         template_version=version.version,
-        filename=filename
+        filename=filename,
     )
