@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     # TODO(step 4 — page-cap benchmark): set the real value and remove the
     # startup guard in main.py that currently refuses to boot in production
     # with page_limit == 0.
-    page_limit: int = 0
+    page_limit: int = 5
 
     rate_limit_per_minute: int = 60
 

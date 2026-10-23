@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from scalar_fastapi.scalar_fastapi import get_scalar_api_reference
 
 from app.api.v1 import router as v1_router
@@ -17,7 +17,7 @@ app = FastAPI(
 app.include_router(v1_router)
 
 
-async def _api_error_handler(request: Request, exc: Exception):
+async def _api_error_handler(request: Request, exc: Exception) -> JSONResponse:
     if not isinstance(exc, ApiError):
         raise exc
     return await api_error_handler(request, exc)

@@ -4,6 +4,7 @@ endpoint is sync too (see app/api/v1/documents.py), so there's no reason to
 pull in async SQLAlchemy for M2/M3. Revisit only if a real need appears.
 """
 
+import logging
 from collections.abc import Generator
 
 from sqlalchemy import create_engine, DateTime, func, Boolean, text
@@ -13,6 +14,7 @@ from datetime import datetime, timezone
 from app.config import get_settings
 
 settings = get_settings()
+logger = logging.getLogger(__name__)
 
 engine = create_engine(settings.database_url, pool_pre_ping=True)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -49,10 +51,16 @@ class Base(DeclarativeBase):
         self.deactivated_at = None
 
 
-def get_db() -> Generator[Session, None, None]:
+def get_db_session() -> Generator[Session, None, None]:
     """FastAPI dependency: yields a request-scoped session."""
-    db = SessionLocal()
+    db_session = SessionLocal()
     try:
-        yield db
+        logger.info(f"Yielding Session: {id(db_session)}")
+        yield db_session
+        logger.info(f"Committed Session: {id(db_session)}")
+
+    except Exception:
+        db_session.rollback()
+        raise
     finally:
-        db.close()
+        db_session.close()

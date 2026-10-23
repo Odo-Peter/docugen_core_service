@@ -1,19 +1,32 @@
 """API errors rendered as RFC 9457 problem+json (api-contract.md, Errors)."""
 
 from typing import Any
+from enum import StrEnum
 
 from fastapi import Request
 from fastapi.responses import JSONResponse
+
+
+class ErrorCode(StrEnum):
+    UNAUTHORIZED = "unauthorized"
+    FORBIDDEN = "forbidden"
+    NOT_FOUND = "not_found"
+    VALIDATION_ERROR = "validation_failed"
+    TEMPLATE_ERROR = "template_error"
+    PAGE_LIMIT_EXCEEDED = "page_limit_exceeded"
+    CONFLICT = "conflict"
+    INTERNAL = "internal"
+
 
 class ApiError(Exception):
     def __init__(
         self,
         status: int,
-        code: str,
+        code: ErrorCode,
         title: str,
         detail: str | None = None,
         errors: list[dict[str, Any]] | None = None,
-        headers: dict[str, str] | None = None,           
+        headers: dict[str, str] | None = None,
     ) -> None:
         self.status = status
         self.code = code
@@ -32,13 +45,8 @@ async def api_error_handler(request: Request, exception: ApiError) -> JSONRespon
     }
 
     if exception.detail:
-        body['detail'] = exception.detail
+        body["detail"] = exception.detail
     if exception.errors:
-        body['errors'] = exception.errors
+        body["errors"] = exception.errors
 
-    return JSONResponse(
-        body,
-        status_code=exception.status,
-        media_type="application/problem+json",
-        headers=exception.headers
-    )
+    return JSONResponse(body, status_code=exception.status, media_type="application/problem+json", headers=exception.headers)
