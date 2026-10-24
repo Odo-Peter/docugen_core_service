@@ -11,11 +11,14 @@ class ErrorCode(StrEnum):
     UNAUTHORIZED = "unauthorized"
     FORBIDDEN = "forbidden"
     NOT_FOUND = "not_found"
+    CONFLICT = "conflict"
+    PAYLOAD_TOO_LARGE = "payload_too_large"
     VALIDATION_FAILED = "validation_failed"
     TEMPLATE_ERROR = "template_error"
     PAGE_LIMIT_EXCEEDED = "page_limit_exceeded"
-    CONFLICT = "conflict"
-    INTERNAL = "internal"
+    RATE_LIMITED = "rate_limited"
+    RENDER_TIMEOUT = "render_timeout"
+    INTERNAL_ERROR = "internal_error"
 
 
 class ApiError(Exception):
