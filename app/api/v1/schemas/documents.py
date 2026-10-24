@@ -4,8 +4,13 @@ from dataclasses import dataclass
 
 
 class TemplateRef(BaseModel):
-    slug: str
-    version: int | None = None
+    slug: str = Field(
+        ...,
+        min_length=3,
+        max_length=64,
+        pattern=r"^[a-z0-9-]{3,64}$",
+    )
+    version: int | None = Field(default=None, ge=1)
 
 
 class DocumentOptions(BaseModel):

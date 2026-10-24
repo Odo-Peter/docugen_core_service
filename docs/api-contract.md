@@ -159,7 +159,7 @@ Last updated 2026-10-24.
 | FastAPI's own request-validation errors mapped to `validation_failed` problem+json | Implemented                                    |
 | `ErrorCode` string values equal the codes in this document                         | Implemented                                    |
 | `X-Request-Id` on every response                                                   | Implemented                                    |
-| 413 body size limit                                                                | Pending                                        |
+| 413 body size limit                                                                | Implemented                                    |
 | 429 per-key rate limit                                                             | Pending                                        |
 | 422 `page_limit_exceeded`                                                          | Mapped; limit value pending the benchmark      |
 | 504 `render_timeout`                                                               | Pending; needs subprocess rendering (ADR 0001) |
