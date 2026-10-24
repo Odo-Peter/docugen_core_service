@@ -7,17 +7,13 @@ from tests.helpers import VALID_DATA, error_fields, post_raw, valid_body, bearer
 # --- template.version must be an integer >= 1 ---
 @pytest.mark.parametrize("version", [0, -1, 1.5, "abc"])
 def test_invalid_template_version_is_rejected(api, acme, version):
-    resp = post_raw(
-        api, acme.key.raw, valid_body(template={"slug": "invoice", "version": version})
-    )
+    resp = post_raw(api, acme.key.raw, valid_body(template={"slug": "invoice", "version": version}))
     assert resp.status_code == 422
     assert "template.version" in error_fields(resp)
 
 
 def test_template_version_one_is_the_lowest_accepted(api, acme):
-    resp = post_raw(
-        api, acme.key.raw, valid_body(template={"slug": "invoice", "version": 1})
-    )
+    resp = post_raw(api, acme.key.raw, valid_body(template={"slug": "invoice", "version": 1}))
     assert resp.status_code == 200
     assert resp.headers["x-template-version"] == "1"
 
@@ -29,6 +25,7 @@ def test_malformed_request_uses_problem_json(api, acme):
         headers=bearer(acme.key.raw),
     )
     assert_problem(resp, 422, "validation_failed")
+
 
 # --- format: only "pdf", case-sensitive ---
 @pytest.mark.parametrize("fmt", ["docx", "PDF", "", "html"])

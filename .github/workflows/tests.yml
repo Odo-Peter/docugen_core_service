@@ -32,6 +32,7 @@ jobs:
                     --health-interval 5s
                     --health-timeout 5s
                     --health-retries 10
+
         steps:
             - name: Checkout repository
               uses: actions/checkout@v4
@@ -84,36 +85,64 @@ jobs:
                       if (fs.existsSync(junitPath)) {
                         const xml = fs.readFileSync(junitPath, 'utf8');
 
-                        // Supports both <testsuites> and <testsuite> root elements.
-                        const root = xml.match(/<(testsuites|testsuite)\b([^>]*)>/);
-                        const attrs = root ? root[2] : '';
-
-                        const getCount = (name) => {
+                        const getCount = (attrs, name) => {
                           const match = attrs.match(
-                            new RegExp(`\\b${name}="(\\d+)"`)
+                            new RegExp(`(?:^|\\s)${name}="(\\d+)"`)
                           );
                           return match ? Number(match[1]) : 0;
                         };
 
-                        const total = getCount('tests');
-                        const failures = getCount('failures');
-                        const errors = getCount('errors');
-                        const skipped = getCount('skipped');
-                        const passed = Math.max(
-                          0, total - failures - errors - skipped
-                        );
+                        // Prefer aggregate counts from the root <testsuites> element.
+                        const rootMatch = xml.match(/<testsuites\b([^>]*)>/);
+                        const rootAttrs = rootMatch ? rootMatch[1] : '';
 
-                        summary += '| Metric | Count |\n';
-                        summary += '|---|---:|\n';
-                        summary += `| Passed | ${passed} |\n`;
-                        summary += `| Failed | ${failures} |\n`;
-                        summary += `| Errors | ${errors} |\n`;
-                        summary += `| Skipped | ${skipped} |\n`;
-                        summary += `| Total | ${total} |\n\n`;
+                        let total = getCount(rootAttrs, 'tests');
+                        let failures = getCount(rootAttrs, 'failures');
+                        let errors = getCount(rootAttrs, 'errors');
+                        let skipped = getCount(rootAttrs, 'skipped');
 
-                        summary += failures === 0 && errors === 0 && total > 0
-                          ? '### All tests passed\n\n'
-                          : '### Tests failed or no tests were collected\n\n';
+                        // Fall back to aggregating individual <testsuite> elements.
+                        if (!/\btests="\d+"/.test(rootAttrs)) {
+                          const suites = [...xml.matchAll(/<testsuite\b([^>]*)>/g)];
+
+                          if (suites.length === 0) {
+                            summary +=
+                              '### Unable to parse test results\n\n' +
+                              'The JUnit XML file contains no recognizable testsuite elements.\n\n';
+                          } else {
+                            total = 0;
+                            failures = 0;
+                            errors = 0;
+                            skipped = 0;
+
+                            for (const suite of suites) {
+                              const attrs = suite[1];
+                              total += getCount(attrs, 'tests');
+                              failures += getCount(attrs, 'failures');
+                              errors += getCount(attrs, 'errors');
+                              skipped += getCount(attrs, 'skipped');
+                            }
+                          }
+                        }
+
+                        if (!summary.includes('Unable to parse test results')) {
+                          const passed = Math.max(
+                            0,
+                            total - failures - errors - skipped
+                          );
+
+                          summary += '| Metric | Count |\n';
+                          summary += '|---|---:|\n';
+                          summary += `| Passed | ${passed} |\n`;
+                          summary += `| Failed | ${failures} |\n`;
+                          summary += `| Errors | ${errors} |\n`;
+                          summary += `| Skipped | ${skipped} |\n`;
+                          summary += `| Total | ${total} |\n\n`;
+
+                          summary += total > 0 && failures === 0 && errors === 0
+                            ? '### All tests passed\n\n'
+                            : '### Tests failed or no tests were collected\n\n';
+                        }
                       } else {
                         summary +=
                           '### Test results unavailable\n\n' +

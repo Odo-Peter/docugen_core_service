@@ -69,7 +69,5 @@ def test_key_without_documents_scope_is_403(api, make_key, acme):
 
 
 def test_demo_key_scopes_can_render(api, make_key, acme):
-    demo = make_key(
-        acme.tenant, scopes=[ApiKeyScope.DOCUMENTS_CREATE, ApiKeyScope.TEMPLATES_READ]
-    )
+    demo = make_key(acme.tenant, scopes=[ApiKeyScope.DOCUMENTS_CREATE, ApiKeyScope.TEMPLATES_READ])
     assert generate(api, demo.raw).status_code == 200

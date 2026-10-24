@@ -5,6 +5,7 @@ from tests.helpers import (
     pages_html,
 )
 
+
 # --- Happy path ---
 def test_generates_pdf_with_contract_headers(api, acme):
     resp = generate(api, acme.key.raw, options={"filename": "invoice-0042.pdf"})
@@ -73,9 +74,7 @@ def test_missing_required_field_is_validation_failed(api, acme):
     body = assert_problem(resp, 422, "validation_failed")
     assert body["errors"]
     # jsonschema reports a missing required key at the parent object's path.
-    assert any(
-        e["path"] == "data.customer" and "name" in e["message"] for e in body["errors"]
-    )
+    assert any(e["path"] == "data.customer" and "name" in e["message"] for e in body["errors"])
 
 
 def test_wrong_type_reports_the_leaf_path(api, acme):
@@ -91,9 +90,7 @@ def test_undefined_template_variable_is_template_error(api, acme, make_template)
 
 
 def test_sandbox_violation_is_template_error(api, acme, make_template):
-    make_template(
-        acme.tenant, "sandboxed", html="<p>{{ ''.__class__ }}</p>", schema={"type": "object"}
-    )
+    make_template(acme.tenant, "sandboxed", html="<p>{{ ''.__class__ }}</p>", schema={"type": "object"})
     resp = generate(api, acme.key.raw, slug="sandboxed", data={})
     assert_problem(resp, 422, "template_error")
 

@@ -39,9 +39,7 @@ INVOICE_SCHEMA = {
 
 def pages_html(n: int) -> str:
     """HTML that renders to exactly n pages."""
-    paragraphs = ["<p>page 1</p>"] + [
-        f'<p style="break-before: page">page {i}</p>' for i in range(2, n + 1)
-    ]
+    paragraphs = ["<p>page 1</p>"] + [f'<p style="break-before: page">page {i}</p>' for i in range(2, n + 1)]
     return "<html><body>" + "".join(paragraphs) + "</body></html>"
 
 
