@@ -2,10 +2,7 @@
 POST /v1/documents (api-contract.md). Renders one document, returns the bytes.
 
 A plain `def`, not `async def` (ADR 0001): rendering is CPU-bound and blocking,
-so it runs in FastAPI's threadpool instead of stalling the event loop.
-
-Needs the renderer core (step 3) and an existing template version. Until step 3 lands,
-the render call raises NotImplementedError and the endpoint returns 500.
+so it runs in FastAPI's threadpool instead of stalling the event loop..
 """
 
 from fastapi import APIRouter, Depends, Response
