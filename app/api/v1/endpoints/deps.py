@@ -100,7 +100,7 @@ def require_scope(scope: str) -> Callable[..., AuthContext]:
             raise ApiError(
                 status=status.HTTP_403_FORBIDDEN,
                 code=ErrorCode.FORBIDDEN,
-                title="Missing required scope" "Missing required scope",
+                title="Missing required scope",
                 detail=f"this key does not have the {scope} scope",
             )
         return auth
