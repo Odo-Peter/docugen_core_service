@@ -18,6 +18,7 @@ from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
+from tests.security_support import TcpCanary
 
 # --- Point the app at the TEST database before anything creates an engine. ---
 ROOT = Path(__file__).resolve().parents[1]
@@ -182,3 +183,8 @@ def acme(make_tenant, make_key, make_template):
     """A tenant with a documents:create key and an active 'invoice' template (v1)."""
     tenant = make_tenant("Acme")
     return SimpleNamespace(tenant=tenant, key=make_key(tenant), invoice=make_template(tenant))
+
+@pytest.fixture
+def canary():
+    with TcpCanary() as listener:
+        yield listener

@@ -7,8 +7,8 @@ called by both the HTTP service and a background worker.
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
-from base64 import b64decode
-from urllib.parse import unquote_to_bytes, urlsplit
+import base64
+from urllib.parse import unquote, urlsplit
 
 from jinja2 import StrictUndefined
 from jinja2.exceptions import TemplateError
@@ -52,31 +52,40 @@ class PageLimitExceeded(Exception):
         super().__init__(f"document has {page_count} pages, limit is {limit}")
 
 
-def restricted_url_fetcher(url: str) -> dict:
-    """Fetch embedded data URIs only; reject all other resource URLs."""
-    parsed = urlsplit(url)
+from weasyprint.urls import URLFetcherResponse, URLFetchingError
 
-    if parsed.scheme.lower() != "data":
-        raise URLFetchingError("Only data: resource URLs are allowed")
+
+def restricted_url_fetcher(url: str, timeout: int = 10, ssl_context=None) -> URLFetcherResponse:
+    """Allow embedded data URIs only; reject filesystem and network access."""
+    scheme = urlsplit(url).scheme.lower()
+    if scheme != "data":
+        raise URLFetchingError(
+            f"Resource URL scheme {scheme or '<missing>'!r} is not allowed"
+        )
 
     try:
-        metadata, separator, payload = url.partition(",")
-        if not separator:
-            raise ValueError("Malformed data URI")
+        header, sep, data = url[5:].partition(",")
+        if not sep:
+            raise ValueError("missing comma in data URI")
 
-        media_type = metadata[5:].split(";")
-        mime_type = media_type[0] or "text/plain"
-        is_base64 = any(part.lower() == "base64" for part in media_type[1:])
+        mime_type = "text/plain"
+        is_base64 = False
+        if header:
+            parts = header.split(";")
+            if parts[0]:
+                mime_type = parts[0]
+            is_base64 = any(p.strip().lower() == "base64" for p in parts[1:])
 
-        content = b64decode(payload, validate=True) if is_base64 else unquote_to_bytes(payload)
+        raw = data.encode("ascii") if is_base64 else unquote(data).encode("utf-8")
+        body = base64.b64decode(raw) if is_base64 else raw
+    except Exception as exc:
+        raise URLFetchingError(f"Invalid data URI: {exc}") from exc
 
-        return {
-            "string": content,
-            "mime_type": mime_type,
-            "redirected_url": url,
-        }
-    except (ValueError, UnicodeError) as exc:
-        raise URLFetchingError("Invalid data URI") from exc
+    return URLFetcherResponse(
+        url,
+        body=body,
+        headers={"Content-Type": mime_type},
+    )
 
 
 class WeasyPrintRenderer(Renderer):
