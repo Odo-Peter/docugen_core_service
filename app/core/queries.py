@@ -1,6 +1,6 @@
 """Reusable query builders. Every read of tenant-owned data goes through here."""
 
-from typing import Any, TypeVar
+from typing import TypeVar
 
 from sqlalchemy import Select, select, func
 from sqlalchemy.orm import Session
@@ -22,9 +22,8 @@ def tenant_active(model: type[T], tenant_id: str) -> Select[T]:
     stmt: Select[T] = active(model)
     return stmt.where(model.tenant_id == tenant_id)  # type: ignore[attr-defined]
 
-def get_version(
-    db: Session, tenant_id: str, slug: str, version: int | None = None
-) -> TemplateVersion | None:
+
+def get_version(db: Session, tenant_id: str, slug: str, version: int | None = None) -> TemplateVersion | None:
     """Active version of an active template owned by tenant_id.
 
     version=None returns the highest-numbered active version. None -> 404.
@@ -48,9 +47,5 @@ def get_version(
 
 def next_version_number(db: Session, template_id: str) -> int:
     """Next number for a publish. Counts deactivated versions too (see model)."""
-    current = db.scalar(
-        select(func.max(TemplateVersion.version)).where(
-            TemplateVersion.template_id == template_id
-        )
-    )
+    current = db.scalar(select(func.max(TemplateVersion.version)).where(TemplateVersion.template_id == template_id))
     return (current or 0) + 1
