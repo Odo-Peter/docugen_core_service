@@ -1,9 +1,10 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, status
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import HTMLResponse, JSONResponse
 from scalar_fastapi.scalar_fastapi import get_scalar_api_reference
 
 from app.api.v1 import router as v1_router
-from app.core.errors import ApiError, api_error_handler
+from app.core.errors import ApiError, ErrorCode, api_error_handler
 
 app = FastAPI(
     title="Docugen Service Core",
@@ -23,7 +24,32 @@ async def _api_error_handler(request: Request, exc: Exception) -> JSONResponse:
     return await api_error_handler(request, exc)
 
 
+async def request_validation_error_handler(request: Request, exc: Exception) -> JSONResponse:
+    if not isinstance(exc, RequestValidationError):
+        raise exc
+
+    errors = [
+        {
+            "path": ".".join(str(loc) for loc in err["loc"]),
+            "message": err["msg"],
+        }
+        for err in exc.errors()
+    ]
+
+    return await api_error_handler(
+        request,
+        ApiError(
+            status=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            code=ErrorCode.VALIDATION_FAILED,
+            title="Request validation failed",
+            detail="Request body or parameters failed validation",
+            errors=errors,
+        ),
+    )
+
+
 app.add_exception_handler(ApiError, _api_error_handler)
+app.add_exception_handler(RequestValidationError, request_validation_error_handler)
 
 
 @app.get("/v1/")

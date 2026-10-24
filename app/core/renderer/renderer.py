@@ -129,9 +129,10 @@ class WeasyPrintRenderer(Renderer):
 
             # Count laid-out pages before allocating the final PDF bytes.
             page_count = len(document.pages)
+            limit = get_settings().page_limit
 
-            if page_count > self.page_limit:
-                raise PageLimitExceeded(page_count, self.page_limit)
+            if page_count > limit:
+                raise PageLimitExceeded(page_count, limit)
 
             content = document.write_pdf()
 
