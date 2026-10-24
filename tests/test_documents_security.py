@@ -27,10 +27,7 @@ def test_hostile_template_returns_template_error(api, acme, make_template, paylo
 
 
 def test_stored_template_cannot_make_the_server_connect_out(api, acme, make_template, canary):
-    html = (
-        f'<img src="http://{canary.host}/x.png">'
-        f'<link rel="stylesheet" href="http://{canary.host}/x.css"><p>hi</p>'
-    )
+    html = f'<img src="http://{canary.host}/x.png">' f'<link rel="stylesheet" href="http://{canary.host}/x.css"><p>hi</p>'
     make_template(acme.tenant, "ssrf", html=html, schema={"type": "object"})
     resp = generate(api, acme.key.raw, slug="ssrf", data={})
     if resp.status_code != 200:

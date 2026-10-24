@@ -184,6 +184,7 @@ def acme(make_tenant, make_key, make_template):
     tenant = make_tenant("Acme")
     return SimpleNamespace(tenant=tenant, key=make_key(tenant), invoice=make_template(tenant))
 
+
 @pytest.fixture
 def canary():
     with TcpCanary() as listener:

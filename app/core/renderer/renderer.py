@@ -14,7 +14,7 @@ from jinja2 import StrictUndefined
 from jinja2.exceptions import TemplateError
 from jinja2.sandbox import SandboxedEnvironment
 from weasyprint import CSS, HTML
-from weasyprint.urls import URLFetchingError
+from weasyprint.urls import URLFetchingError, URLFetcherResponse
 
 from app.config import get_settings
 
@@ -52,16 +52,11 @@ class PageLimitExceeded(Exception):
         super().__init__(f"document has {page_count} pages, limit is {limit}")
 
 
-from weasyprint.urls import URLFetcherResponse, URLFetchingError
-
-
-def restricted_url_fetcher(url: str, timeout: int = 10, ssl_context=None) -> URLFetcherResponse:
+def restricted_url_fetcher(url: str) -> URLFetcherResponse:
     """Allow embedded data URIs only; reject filesystem and network access."""
     scheme = urlsplit(url).scheme.lower()
     if scheme != "data":
-        raise URLFetchingError(
-            f"Resource URL scheme {scheme or '<missing>'!r} is not allowed"
-        )
+        raise URLFetchingError(f"Resource URL scheme {scheme or '<missing>'!r} is not allowed")
 
     try:
         header, sep, data = url[5:].partition(",")

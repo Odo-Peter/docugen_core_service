@@ -25,15 +25,11 @@ pytestmark = pytest.mark.timeout(60)
 DATA = {"customer": {"name": "Acme"}}
 
 DATA_PNG = "data:image/png;base64," + base64.b64encode(tiny_png()).decode()
-DATA_CSS = "data:text/css;charset=utf-8," + urllib.parse.quote(
-    f'body::before {{ content: "{MARKER}" }}'
-)
+DATA_CSS = "data:text/css;charset=utf-8," + urllib.parse.quote(f'body::before {{ content: "{MARKER}" }}')
 
 
 def render(html: str, css: str = "", data: dict | None = None):
-    return render_document(
-        template_html=html, template_css=css, data=DATA if data is None else data, fmt="pdf"
-    )
+    return render_document(template_html=html, template_css=css, data=DATA if data is None else data, fmt="pdf")
 
 
 def attempt(html: str, css: str = "", data: dict | None = None):
@@ -106,10 +102,7 @@ def test_remote_urls_are_never_fetched(carrier, scheme, canary):
 
 def test_html_in_data_cannot_trigger_a_fetch(canary):
     """Even if a value were rendered unescaped, the fetcher must still refuse."""
-    hostile = (
-        f'<img src="http://{canary.host}/x.png">'
-        f'<link rel="stylesheet" href="http://{canary.host}/x.css">'
-    )
+    hostile = f'<img src="http://{canary.host}/x.png">' f'<link rel="stylesheet" href="http://{canary.host}/x.css">'
     attempt("<p>{{ customer.name }}</p>", data={"customer": {"name": hostile}})
     assert canary.connections == 0
 
